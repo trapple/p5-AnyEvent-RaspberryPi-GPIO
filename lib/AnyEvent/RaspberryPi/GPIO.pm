@@ -15,7 +15,7 @@ our $GPIO_DIR       = '/sys/class/gpio/gpio%d/';
 our $GPIO_DIRECTION = '/sys/class/gpio/gpio%d/direction';
 our $GPIO_VALUE     = '/sys/class/gpio/gpio%d/value';
 
-our $VERSION = "0.02";
+our $VERSION = "0.03";
 our $TIMER_INTERVAL = 0.02;
 
 our @GUARD;

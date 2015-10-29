@@ -43,7 +43,6 @@
       "runtime" : {
          "requires" : {
             "AnyEvent" : "7.11",
-            "AnyEvent::Filesys::Notify" : "1.19",
             "Class::Tiny" : "1.001",
             "Scope::Guard" : "0.20"
          }
@@ -67,6 +66,6 @@
          "web" : "https://github.com/trapple/p5-AnyEvent-RaspberryPi-GPIO"
       }
    },
-   "version" : "0.02",
+   "version" : "0.03",
    "x_serialization_backend" : "JSON::PP version 2.27300"
 }

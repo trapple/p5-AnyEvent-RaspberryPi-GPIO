@@ -5,11 +5,9 @@ use utf8;
 use Carp;
 use IO::File;
 use AnyEvent;
-use AnyEvent::Filesys::Notify;
 use Scope::Guard;
-use Data::Dumper;
 
-use Class::Tiny qw/channel direction verbose handle register onchange gc/;
+use Class::Tiny qw/channel direction verbose handle register/;
 
 our $GPIO_EXPORT    = '/sys/class/gpio/export';
 our $GPIO_UNEXPORT  = '/sys/class/gpio/unexport';
@@ -19,22 +17,22 @@ our $GPIO_VALUE     = '/sys/class/gpio/gpio%d/value';
 
 our $VERSION = "0.01";
 
+our $GUARD;
+
 sub BUILD {
   my ($self, $args) = @_;
 
   $self->channel   || croak "channel is required.";
   $self->direction || croak "direction is required.";
-  $self->onchange && ref $self->onchange ne "CODE" && croak "onchange must be code ref.";
+  $args->{onchange} && ref $args->{onchange} ne "CODE" && croak "onchange must be code ref.";
 
   $self->export();
   $self->init();
-  $self->onchange && $self->_onchange();
+  $args->{onchange} && $self->onchange($args->{onchange});
 
-  my $finalize = Scope::Guard->new(sub {
-    unexport($args->{channel}, $args->{verbose});
+  $GUARD = Scope::Guard->new(sub {
+    _unexport($args->{channel}, $args->{verbose});
   });
-
-  $self->gc($finalize);
 }
 
 sub export {
@@ -62,22 +60,17 @@ sub init {
   $self->handle($fh);
 }
 
-sub _onchange {
-  my $self = shift;
+sub onchange {
+  my ($self, $callback) = @_;
 
-  my $watcher = AnyEvent::Filesys::Notify->new({
-      dirs     => [sprintf($GPIO_DIR, $self->channel)],
-      interval => 0.02,
-      filter   => qr/value$/,
-      cb       => sub {
-        my (@events) = @_;
-        for my $event (@events) {
-          if ($event->type() eq "modified") {
-            $self->onchange->($self->value);
-          }
-        }
-      }
-    });
+  my $value = $self->value;
+  my $watcher = AE::timer 0, 0.1, sub {
+    my $v = $self->value;
+    if($v != $value) {
+      $callback->($v);
+    }
+    $value = $v;
+  };
   $self->register($watcher);
 }
 
@@ -101,12 +94,16 @@ sub value {
   return $val;
 }
 
-sub unexport {
+sub _unexport {
   my ($channel, $verbose) = @_;
   open my $fh, '>', $GPIO_UNEXPORT || croak $!;
   print STDOUT sprintf("unexport %s > %s\n", $channel, $GPIO_UNEXPORT) if $verbose;
   print $fh $channel;
   close $fh;
+}
+
+END {
+  undef $GUARD;
 }
 
 1;

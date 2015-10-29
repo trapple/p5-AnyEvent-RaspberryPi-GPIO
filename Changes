@@ -2,5 +2,7 @@ Revision history for Perl extension AnyEvent-RaspberryPi-GPIO
 
 {{$NEXT}}
 
+0.01 2015-10-29T09:39:17Z
+
     - original version
 

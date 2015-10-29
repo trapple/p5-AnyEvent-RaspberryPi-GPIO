@@ -1,0 +1,1 @@
+--exec "perl -Ilib -It/lib -MTest::More -MTest::Flatten"

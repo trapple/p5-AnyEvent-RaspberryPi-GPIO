@@ -19,6 +19,8 @@ our $GPIO_VALUE     = '/sys/class/gpio/gpio%d/value';
 
 our $VERSION = "0.01";
 
+our $GUARD;
+
 sub BUILD {
   my ($self, $args) = @_;
 
@@ -30,11 +32,10 @@ sub BUILD {
   $self->init();
   $self->onchange && $self->_onchange();
 
-  my $finalize = Scope::Guard->new(sub {
+  $GUARD = Scope::Guard->new(sub {
     unexport($args->{channel}, $args->{verbose});
   });
 
-  $self->gc($finalize);
 }
 
 sub export {
@@ -107,6 +108,10 @@ sub unexport {
   print STDOUT sprintf("unexport %s > %s\n", $channel, $GPIO_UNEXPORT) if $verbose;
   print $fh $channel;
   close $fh;
+}
+
+END {
+  undef $GUARD;
 }
 
 1;

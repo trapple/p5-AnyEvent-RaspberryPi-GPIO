@@ -7,7 +7,7 @@ use IO::File;
 use AnyEvent;
 use Scope::Guard;
 
-use Class::Tiny qw/channel direction verbose handle register/;
+use Class::Tiny qw/channel direction verbose handle register gc/;
 
 our $GPIO_EXPORT    = '/sys/class/gpio/export';
 our $GPIO_UNEXPORT  = '/sys/class/gpio/unexport';
@@ -16,8 +16,9 @@ our $GPIO_DIRECTION = '/sys/class/gpio/gpio%d/direction';
 our $GPIO_VALUE     = '/sys/class/gpio/gpio%d/value';
 
 our $VERSION = "0.01";
+our $TIMER_INTERVAL = 0.02;
 
-our $GUARD;
+our @GUARD;
 
 sub BUILD {
   my ($self, $args) = @_;
@@ -30,7 +31,7 @@ sub BUILD {
   $self->init();
   $args->{onchange} && $self->onchange($args->{onchange});
 
-  $GUARD = Scope::Guard->new(sub {
+  push @GUARD, Scope::Guard->new(sub {
     _unexport($args->{channel}, $args->{verbose});
   });
 }
@@ -64,7 +65,7 @@ sub onchange {
   my ($self, $callback) = @_;
 
   my $value = $self->value;
-  my $watcher = AE::timer 0, 0.1, sub {
+  my $watcher = AE::timer 0, $TIMER_INTERVAL, sub {
     my $v = $self->value;
     if($v != $value) {
       $callback->($v);
@@ -103,7 +104,7 @@ sub _unexport {
 }
 
 END {
-  undef $GUARD;
+  undef @GUARD;
 }
 
 1;
